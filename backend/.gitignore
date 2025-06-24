@@ -1,0 +1,17 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.test
+
+# Logs
+logs
+*.log
+
+# Test coverage
+coverage/
+
+# IDE files
+.vscode/
+.DS_Store
