@@ -4,10 +4,13 @@ const {
     createTicket,
     getTickets,
     getTicketById,
+    assignTicket,
     updateTicket,
     deleteTicket,
+    reopenTicket
 } = require('../controllers/ticket.controller');
 const { protect } = require('../middleware/auth.middleware');
+
 
 // Secure all routes
 router.post('/', protect, createTicket);
