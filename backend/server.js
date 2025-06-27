@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use('/api/tickets', ticketRoutes);
-app.use('/api/comments', commentRoutes);
+// app.use('/api/comments', commentRoutes);
 app.use('/api/users', authRoutes);
 
 // Start server if NOT in test
