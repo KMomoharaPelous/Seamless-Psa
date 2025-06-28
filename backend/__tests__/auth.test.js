@@ -24,7 +24,7 @@ describe('Auth Routes', () => {
     // Test user registration
     it('should register a new user', async () => {
         const res = await request(app)
-            .post('/api/users/register')
+            .post('/api/auth/register')
             .send({
                 name: 'Test User',
                 email: 'test@example.com',
@@ -64,7 +64,7 @@ describe('Auth Routes', () => {
     // Tests User Login
     it('it should login a registered user', async () => {
         await request(app)
-            .post('/api/users/register')
+            .post('/api/auth/register')
             .send({
                 name: 'Login User',
                 email: 'login@example.com',
@@ -73,7 +73,7 @@ describe('Auth Routes', () => {
             });
 
         const res = await request(app)
-            .post('/api/users/login')
+            .post('/api/auth/login')
             .send({
                 email: 'login@example.com',
                 password: 'loginpass123'
@@ -87,7 +87,7 @@ describe('Auth Routes', () => {
     // Tests invalid credentials
     it('should reject login with invalid credentials', async () => {
         const res = await request(app)
-            .post('/api/users/login')
+            .post('/api/auth/login')
             .send({
                 email: 'fake@example.com',
                 password: 'wrongpass',
