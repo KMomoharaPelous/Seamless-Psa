@@ -15,7 +15,7 @@ beforeAll(async () => {
         name: 'Test User',
         email: 'test@example.com',
         password: 'password123',
-        role: 'client'
+        role: 'Client'
     });
 
     userId = user._id;

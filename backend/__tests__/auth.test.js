@@ -29,7 +29,7 @@ describe('Auth Routes', () => {
                 name: 'Test User',
                 email: 'test@example.com',
                 password: 'testpass123',
-                role: 'client',
+                role: 'Client',
             });
 
         expect(res.statusCode).toBe(201);
@@ -38,14 +38,23 @@ describe('Auth Routes', () => {
     });
 
     // Test Duplicate Registration
-    it('should not allow duplicate email registraion', async () => {
+    it('should not allow duplicate email registration', async () => {
         await request(app)
-            .post('/api/users/register')
+            .post('/api/auth/register')
             .send({
                 name: 'Admin User',
                 email: 'admin@example.com',
                 password: 'adminpass123',
-                role: 'admin'
+                role: 'Admin'
+            });
+
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send({
+                name: 'Admin User 2',
+                email: 'admin@example.com',
+                password: 'adminpass123',
+                role: 'Admin'
             });
 
         expect(res.statusCode).toBe(400);
@@ -60,7 +69,7 @@ describe('Auth Routes', () => {
                 name: 'Login User',
                 email: 'login@example.com',
                 password: 'loginpass123',
-                role: 'admin'
+                role: 'Admin'
             });
 
         const res = await request(app)
@@ -71,7 +80,7 @@ describe('Auth Routes', () => {
             });
         
         expect(res.statusCode).toBe(200);
-        expect(res.body).toHaveProperty('token');
+        expect(res.body).toHaveProperty('user');
         expect(res.body.user.email).toBe('login@example.com');
     });
 

@@ -25,7 +25,7 @@ const createTicket = async (req, res) => {
         res.status(201).json({ ticket });
     } catch (error) {
         console.error('[Error] createTicket:', error.message);
-        res.status(500).json({ message: 'Server' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
