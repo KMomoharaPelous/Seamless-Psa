@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const ticketRoutes = require('./routes/ticket.routes');
 const commentRoutes = require('./routes/comment.routes');
 const authRoutes = require('./routes/auth.routes');
+const activityRoutes = require('./routes/activity.routes');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 app.use('/api/tickets', ticketRoutes);
 // app.use('/api/comments', commentRoutes);
 app.use('/api/users', authRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Start server if NOT in test
 if (process.env.NODE_ENV !== 'test') {
