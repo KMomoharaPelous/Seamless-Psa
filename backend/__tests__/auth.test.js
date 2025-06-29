@@ -24,7 +24,7 @@ describe('Auth Routes', () => {
     // Test user registration
     it('should register a new user', async () => {
         const res = await request(app)
-            .post('/api/auth/register')
+            .post('/api/users/register')
             .send({
                 name: 'Test User',
                 email: 'test@example.com',
@@ -34,13 +34,13 @@ describe('Auth Routes', () => {
 
         expect(res.statusCode).toBe(201);
         expect(res.body).toHaveProperty('token');
-        expect(res.body.email).toBe('test@example.com');
+        expect(res.body.user.email).toBe('test@example.com');
     });
 
     // Test Duplicate Registration
     it('should not allow duplicate email registration', async () => {
         await request(app)
-            .post('/api/auth/register')
+            .post('/api/users/register')
             .send({
                 name: 'Admin User',
                 email: 'admin@example.com',
@@ -49,7 +49,7 @@ describe('Auth Routes', () => {
             });
 
         const res = await request(app)
-            .post('/api/auth/register')
+            .post('/api/users/register')
             .send({
                 name: 'Admin User 2',
                 email: 'admin@example.com',
@@ -64,7 +64,7 @@ describe('Auth Routes', () => {
     // Tests User Login
     it('it should login a registered user', async () => {
         await request(app)
-            .post('/api/auth/register')
+            .post('/api/users/register')
             .send({
                 name: 'Login User',
                 email: 'login@example.com',
@@ -73,7 +73,7 @@ describe('Auth Routes', () => {
             });
 
         const res = await request(app)
-            .post('/api/auth/login')
+            .post('/api/users/login')
             .send({
                 email: 'login@example.com',
                 password: 'loginpass123'
@@ -87,7 +87,7 @@ describe('Auth Routes', () => {
     // Tests invalid credentials
     it('should reject login with invalid credentials', async () => {
         const res = await request(app)
-            .post('/api/auth/login')
+            .post('/api/users/login')
             .send({
                 email: 'fake@example.com',
                 password: 'wrongpass',
