@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const request = require('supertest');
 const app = require('../server');
 const User = require('../models/user.model');
+const { getLogsByTicket } = require('../controllers/activity.controller')
 
 // Connect to test DB before tests run
 beforeAll(async () => {

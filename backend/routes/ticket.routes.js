@@ -9,37 +9,37 @@ const {
     deleteTicket,
     reopenTicket,
 } = require('../controllers/ticket.controller');
-const { protect } = require('../middleware/auth.middleware');
+const auth = require('../middleware/auth.middleware');
 
 
 // Secure all routes
 
 // CREATE new ticket
 // POST /api/tickets
-router.post('/', protect, createTicket);
+router.post('/', auth, createTicket);
 
 // GET tickets created by user
 // GET /api/tickets
-router.get('/', protect, getTickets);
+router.get('/', auth, getTickets);
 
 // GET single ticket by ID
 // GET /api/tickets/:id
-router.get('/:id', protect, getTicketById);
+router.get('/:id', auth, getTicketById);
 
 // UPDATE ticket fields (title, description, status, priority)
 // PUT /api/tickets/:id
-router.put('/:id', protect, updateTicket);
+router.put('/:id', auth, updateTicket);
 
 // DELETE ticket
 // DELETE /api/tickets/:id
-router.delete('/:id', protect, deleteTicket);
+router.delete('/:id', auth, deleteTicket);
 
 // ASSIGN ticket (Admin or Tech only)
 // PATCH /api/tickets/:id/assign
-router.patch('/:id/assign', protect, assignTicket);
+router.patch('/:id/assign', auth, assignTicket);
 
 // REOPEN ticket (any authenticated user)
 // PATCH /api/tickets/:id/reopen
-router.patch('/:id/reopen', protect, reopenTicket);
+router.patch('/:id/reopen', auth, reopenTicket);
 
 module.exports = router;

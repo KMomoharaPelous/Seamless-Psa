@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const User = require('../models/user.model');
 const Ticket = require('../models/ticket.model');
 const jwt = require('jsonwebtoken');
+const { getLogsByTicket } = require('../controllers/activity.controller');
+const auth = require('../middleware/auth.middleware');
+
 
 let token, userId;
 
@@ -21,6 +24,11 @@ beforeAll(async () => {
     userId = user._id;
 
     token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '4h' });
+});
+
+afterEach(async () => {
+    await User.deleteMany();
+    await Ticket.deleteMany();
 });
 
 afterAll(async () => {
