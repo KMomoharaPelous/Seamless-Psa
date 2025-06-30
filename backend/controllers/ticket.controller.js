@@ -3,11 +3,19 @@ const User = require('../models/user.model');
 const ActivityLog = require('../models/activityLog.model');
 const mongoose = require('mongoose');
 
+
 // @desc Create a new ticket
 // @route POST /api/tickets
 // @access Private
 const createTicket = async (req, res) => {
-    const { title, description, priority = 'Low', status = 'Open', assignedTo, dueDate } = req.body;
+    const {
+        title,
+        description,
+        priority = 'Low',
+        status = 'Open',
+        assignedTo,
+        dueDate,
+    } = req.body;
 
     // Validate required fields
     if (!title?.trim() || !description?.trim()) {
@@ -21,27 +29,29 @@ const createTicket = async (req, res) => {
     try {
         let assignee = null;
 
-        // If assignedTo is provided, validate its a valid user
-        if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
-            return res.status(400).json({ message: 'Invalid assignedTo user ID' });
+        // Validate assignedTo if provided
+        if (assignedTo) {
+            if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+                return res.status(400).json({ message: 'Invalid assignedTo user ID' });
+            }
+
+            assignee = await User.findById(assignedTo);
+            if (!assignee) {
+                return res.status(404).json({ message: 'Assigned user not found' });
+            }
+
+            // Role-based permission to assign tickets
+            const role = req.user.role.toLowerCase();
+            if (role !== 'admin' && role !== 'technician') {
+                return res.status(403).json({ message: 'Not authorized to assign tickets' });
+            }
         }
 
-        assignee = await User.findById(assignedTo);
-        if (!assignee) {
-            return res.status(404).json({ message: 'Assigned user not found' });
-        }
-
-        // Restrict assignment based on roles
-        const requesterRole = req.user.role.toLowerCase();
-        if (requesterRole !== 'Admin' && requesterRole !== 'Technician') {
-            return res.status(403).json({ message: 'Not authorized to assign tickets' });
-        }
-        // Validate due date
+        // Validate dueDate if provided
         if (dueDate && isNaN(Date.parse(dueDate))) {
             return res.status(400).json({ message: 'Invalid due date format' });
         }
 
-        // Create ticket
         const ticket = await Ticket.create({
             title: title.trim(),
             description: description.trim(),
@@ -52,22 +62,17 @@ const createTicket = async (req, res) => {
             createdBy: req.user._id,
         });
 
-        // Log Activity
-        if (ActivityLog) {
-            await ActivityLog.create({
-                ticket: ticket._id,
-                action: 'Created',
-                performedBy: req.user._id,
-                metadata: {
-                    priority,
-                    status,
-                },
-            });
-        }
+        // Create activity log
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'Created',
+            performedBy: req.user._id,
+            metadata: { priority, status },
+        });
 
-        res.status(201).json({ 
-            message: 'Ticket successfully created', 
-            ticket, 
+        res.status(201).json({
+            message: 'Ticket successfully created',
+            ticket,
         });
     } catch (error) {
         console.error('[Error] createTicket:', error.message);
@@ -80,8 +85,11 @@ const createTicket = async (req, res) => {
 // @access Private
 const getTickets = async (req, res) => {
     try {
-        const tickets = await Ticket.find({ createdBy: req.user._id });
-        res.status(200).json({ tickets });
+        const tickets = await Ticket.find({ createdBy: req.user._id })
+            .populate('assignedTo', 'name email role')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ message: 'Fetched user tickets', tickets });
     } catch (error) {
         console.error('[Error] getTickets:', error.message);
         res.status(500).json({ message: 'Server error' });
@@ -99,17 +107,18 @@ const getTicketById = async (req, res) => {
     }
 
     try {
-        const ticket = await Ticket.findById(id);
+        const ticket = await Ticket.findById(id)
+            .populate('assignedTo', 'name email role')
 
         if (!ticket) {
             return res.status(404).json({ message: 'Ticket not found' });
         }
 
         if (ticket.createdBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'Not authorized to view this ticket' });
-        } 
+            return res.status(403).json({ message: 'Unauthorized to view this ticket' });
+        }
 
-        res.status(200).json({ ticket });
+        res.status(200).json({ message: 'Ticket retrieved successfully', ticket });
     } catch (error) {
         console.error('[Error] getTicketById:', error.message);
         res.status(500).json({ message: 'Server error' });
@@ -194,8 +203,19 @@ const reopenTicket = async (req, res) => {
         const ticket = await Ticket.findById(id);
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
+        if (ticket.status === 'ReOpened') {
+            return res.status(400).json({ message: 'Ticket is already reopened' });
+        }
+
         ticket.status = 'ReOpened';
         await ticket.save();
+
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'Reopened',
+            performedBy: req.user._id,
+            metadata: { status: 'ReOpened' }
+        });
 
         res.status(200).json({ message: 'Ticket Reopened', ticket});
     } catch (error) {
@@ -225,8 +245,15 @@ const deleteTicket = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to delete this ticket' });
         }
 
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'Deleted',
+            performedBy: req.user._id,
+            metadata: { title: ticket.title }
+        });
+
         await ticket.deleteOne();
-        res.status(200).json({ message: 'Ticket Deleted' });
+        res.status(200).json({ message: 'Ticket deleted successfully' });
     } catch (error) {
         console.error('[Error] deleteTicket:', error.message);
         res.status(500).json({ message: 'Server error' });
