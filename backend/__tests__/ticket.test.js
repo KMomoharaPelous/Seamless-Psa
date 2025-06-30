@@ -1,56 +1,104 @@
-const request = require('supertest');
+const require = require('supertest');
 const app = require('../server');
 const mongoose = require('mongoose');
 const User = require('../models/user.model');
 const Ticket = require('../models/ticket.model');
 const jwt = require('jsonwebtoken');
-const { getLogsByTicket } = require('../controllers/activity.controller');
-const auth = require('../middleware/auth.middleware');
 
-
-let token, userId;
+let token;
+let user;
 
 beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI);
 
-    // Create a test user
-    const user = await User.create ({
+    // Create and save test user
+    user = await User.create({
         name: 'Test User',
         email: 'test@example.com',
-        password: 'password123',
-        role: 'Client'
+        password: 'clientpass123',
+        role: 'Client',
     });
 
-    userId = user._id;
-
-    token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '4h' });
+    // Generate JWT token for test user
+    token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 });
 
 afterEach(async () => {
-    await User.deleteMany();
     await Ticket.deleteMany();
 });
 
 afterAll(async () => {
-    await User.deleteMany();
     await Ticket.deleteMany();
+    await User.deleteMany();
     await mongoose.connection.close();
 });
 
+// Unit Tests
 describe('Ticket API', () => {
-    test('should create a new ticket', async () => {
+    // Create a new ticket
+    it('should create a new ticket', async () => {
         const res = await request(app)
             .post('/api/tickets')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                title: 'Network issue',
+                title: 'Network Issue',
                 description: 'Cannot connect to VPN',
                 priority: 'High',
-                status: 'Open'
+                status: 'Open',
             });
 
         expect(res.statusCode).toBe(201);
+        expect(res.body).toHaveProperty('ticket');
         expect(res.body.ticket).toHaveProperty('_id');
-        expect(res.body.ticket.title).toBe('Network issue');
+        expect(res.body.ticket.title).toBe('Network Issue');
+        expect(res.body.ticket.createdBy).toBe(user._id.toString());
+    });
+
+    // Verifies duplicate tickets cannot be made
+    it('should not createa ticket without a title', async () => {
+        const res = await request(app)
+            .post('/api/tickets')
+            .set('Authorizaton', `Bearer ${token}`)
+            .send({
+                title: 'Network Issue',
+                description: 'Cannot connect to VPN',
+                priority: 'High',
+                status: 'Open',
+            });
+
+        expect(res.statusCode).toBe(201);
+        expect(res.body).toHaveProperty('ticket');
+        expect(res.body.ticket).toHaveProperty('_id');
+        expect(res.body.ticket.title).toBe('Network Issue');
+        expect(res.body.ticket.createdBy).toBe(user._id.toString());
+    });
+
+    it('should not create a ticket without a title', async () => {
+        const res = await request(app)
+            .post('/api/tickets')
+            .set('Authorization', `Bearer $[token]`)
+            .send({
+                description: 'Missing title',
+                priority: 'Low',
+                status: 'Open',
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.message).toMatch(/title and description are required/i);
+    });
+
+    it('should return 401 if no token is provided', async () => {
+        const res = await request(app)
+            .post('/api/tickets')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                description: 'Unauthorized Ticket',
+                description: 'No token provided',
+                priority: 'Low',
+                status: 'Open',
+            });
+
+        expect(res.statusCode).toBe(401);
+        expect(res.body.message).toMatch(/No token provided/i);
     });
 });

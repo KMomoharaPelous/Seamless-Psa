@@ -1,28 +1,74 @@
 const Ticket = require('../models/ticket.model');
+const User = require('../models/user.model');
+const ActivityLog = require('../models/activityLog.model');
 const mongoose = require('mongoose');
 
 // @desc Create a new ticket
 // @route POST /api/tickets
 // @access Private
 const createTicket = async (req, res) => {
-    const { title, description, priority, status, assignedTo, dueDate } = req.body;
+    const { title, description, priority = 'Low', status = 'Open', assignedTo, dueDate } = req.body;
 
-    if (!title || !description) {
+    // Validate required fields
+    if (!title?.trim() || !description?.trim()) {
         return res.status(400).json({ message: 'Title and description are required' });
     }
 
+    if (!req.user || !req.user._id) {
+        return res.status(401).json({ message: 'User not authenticated' });
+    }
+
     try {
+        let assignee = null;
+
+        // If assignedTo is provided, validate its a valid user
+        if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+            return res.status(400).json({ message: 'Invalid assignedTo user ID' });
+        }
+
+        assignee = await User.findById(assignedTo);
+        if (!assignee) {
+            return res.status(404).json({ message: 'Assigned user not found' });
+        }
+
+        // Restrict assignment based on roles
+        const requesterRole = req.user.role.toLowerCase();
+        if (requesterRole !== 'Admin' && requesterRole !== 'Technician') {
+            return res.status(403).json({ message: 'Not authorized to assign tickets' });
+        }
+        // Validate due date
+        if (dueDate && isNaN(Date.parse(dueDate))) {
+            return res.status(400).json({ message: 'Invalid due date format' });
+        }
+
+        // Create ticket
         const ticket = await Ticket.create({
-            title,
-            description,
+            title: title.trim(),
+            description: description.trim(),
             priority,
             status,
-            assignedTo,
-            dueDate,
+            assignedTo: assignee?._id || null,
+            dueDate: dueDate ? new Date(dueDate) : null,
             createdBy: req.user._id,
         });
 
-        res.status(201).json({ ticket });
+        // Log Activity
+        if (ActivityLog) {
+            await ActivityLog.create({
+                ticket: ticket._id,
+                action: 'Created',
+                performedBy: req.user._id,
+                metadata: {
+                    priority,
+                    status,
+                },
+            });
+        }
+
+        res.status(201).json({ 
+            message: 'Ticket successfully created', 
+            ticket, 
+        });
     } catch (error) {
         console.error('[Error] createTicket:', error.message);
         res.status(500).json({ message: 'Server error' });
@@ -37,7 +83,7 @@ const getTickets = async (req, res) => {
         const tickets = await Ticket.find({ createdBy: req.user._id });
         res.status(200).json({ tickets });
     } catch (error) {
-        console.error('[Error] getTicekts:', error.message);
+        console.error('[Error] getTickets:', error.message);
         res.status(500).json({ message: 'Server error' });
     }
 };
