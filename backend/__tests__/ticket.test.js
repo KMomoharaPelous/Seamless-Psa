@@ -73,7 +73,7 @@ describe('Ticket API', () => {
     it('should not create a ticket without a title', async () => {
         const res = await request(app)
             .post('/api/tickets')
-            .set('Authorization', `Bearer $[token]`)
+            .set('Authorization', `Bearer $[clientToken]`)
             .send({
                 description: 'Missing title',
                 priority: 'Low',
@@ -88,7 +88,6 @@ describe('Ticket API', () => {
     it('should return 401 if no token is provided', async () => {
         const res = await request(app)
             .post('/api/tickets')
-            .set('Authorization', `Bearer ${token}`)
             .send({
                 description: 'Unauthorized Ticket',
                 description: 'No token provided',
@@ -152,6 +151,7 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.ticket.title).toBe('Updated Title');
+        expect(res.body.ticket.description).toBe('Updated Description');
     });
 
 
