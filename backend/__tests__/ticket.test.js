@@ -35,9 +35,9 @@ beforeAll(async () => {
     });
 
     // Generate JWT token for test users
-    clientToken = jwt.sign({ _id: clientUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    adminToken = jwt.sign({ _id: adminUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    technicianToken = jwt.sign({ _id: technicianUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    clientToken = jwt.sign({ _id: clientUser._id, role: clientUser.role, email: clientUser.email  }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    adminToken = jwt.sign({ _id: adminUser._id, role: adminUser.role, email: adminUser.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    technicianToken = jwt.sign({ _id: technicianUser._id, role: technicianUser.role, email: technicianUser.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
 });
 
 afterEach(async () => {
@@ -195,12 +195,12 @@ describe('Ticket API', () => {
             title: 'WiFi down',
             description: 'Closing now',
             status: 'Closed',
-            createdBy: user._id,
+            createdBy: clientUser._id,
         });
 
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}/reopen`)
-            .set('Authorization', `Bearer ${token}`)
+            .set('Authorization', `Bearer ${clientToken}`)
             .send({ status: 'ReOpened' });
 
         expect(res.statusCode).toBe(200);
