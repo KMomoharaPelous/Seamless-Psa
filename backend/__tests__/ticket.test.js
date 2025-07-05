@@ -186,7 +186,7 @@ describe('Ticket API', () => {
             .send({ assignedTo: technicianUser._id });
 
         expect(res.statusCode).toBe(403);
-        expect(res.body.message).toBe('Unauthorized to assign this ticket');
+        expect(res.body.message).toBe('Forbidden: you do not have permission to access this resource');
     });
 
     // Verifies Ticket can be reopened by creator

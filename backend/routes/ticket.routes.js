@@ -16,14 +16,14 @@ const {
     getCommentsByTicket,
 } = require('../controllers/comment.controller');
 
-const { auth } = require('../middleware/auth.middleware');
+const auth = require('../middleware/auth.middleware');
 const { authorizeRoles } = require('../middleware/role.middleware');
 
 // 🔐 Ticket Routes
 
 // Create a new ticket
 // POST /api/tickets
-router.post('/', auth, getTickets);
+router.post('/', auth, createTicket);
 
 // Get all tickets (User + Admin)
 // GET /api/tickets/
