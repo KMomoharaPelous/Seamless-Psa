@@ -1,55 +1,61 @@
 const express = require('express');
 const router = express.Router();
+
 const {
     createTicket,
     getTickets,
     getTicketById,
-    assignTicket,
     updateTicket,
-    deleteTicket,
+    assignTicket,
     reopenTicket,
+    deleteTicket,
 } = require('../controllers/ticket.controller');
+
 const {
     createComment,
     getCommentsByTicket,
 } = require('../controllers/comment.controller');
-const auth = require('../middleware/auth.middleware');
 
+const { auth } = require('../middleware/auth.middleware');
+const { authorizeRoles } = require('../middleware/role.middleware');
 
-// Secure all routes
+// 🔐 Ticket Routes
 
-// CREATE new ticket
+// Create a new ticket
 // POST /api/tickets
-router.post('/', auth, createTicket);
+router.post('/', auth, getTickets);
 
-// GET tickets created by user
-// GET /api/tickets
+// Get all tickets (User + Admin)
+// GET /api/tickets/
 router.get('/', auth, getTickets);
 
-// GET single ticket by ID
+// Get single ticket by ID
 // GET /api/tickets/:id
 router.get('/:id', auth, getTicketById);
 
-// UPDATE ticket fields (title, description, status, priority)
+// Update a ticket (Creator + Tech + Admin)
 // PATCH /api/tickets/:id
 router.patch('/:id', auth, updateTicket);
 
-// DELETE ticket
+// Delete a ticket (Admin Only) - Condional Technican later implemented
 // DELETE /api/tickets/:id
 router.delete('/:id', auth, deleteTicket);
 
-// ASSIGN ticket (Admin or Tech only)
+// Assign ticket to Technician (Admin & Tech only)
 // PATCH /api/tickets/:id/assign
-router.patch('/:id/assign', auth, assignTicket);
+router.patch('/:id/assign', auth, authorizeRoles('Admin', 'Technician'), assignTicket);
 
-// REOPEN ticket (any authenticated user)
+// Reopen a ticket (Any authenticated user)
 // PATCH /api/tickets/:id/reopen
 router.patch('/:id/reopen', auth, reopenTicket);
 
-// COMMENT routes for tickets
+// 🔐 Comment Routes
+
+// Create a comment on a ticket
 // POST /api/tickets/:ticketId/comments
 router.post('/:ticketId/comments', auth, createComment);
 
+// Get all comments for a ticket
 // GET /api/tickets/:ticketId/comments
 router.get('/:ticketId/comments', auth, getCommentsByTicket);
 

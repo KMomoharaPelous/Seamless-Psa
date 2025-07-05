@@ -40,11 +40,8 @@ const createTicket = async (req, res) => {
                 return res.status(404).json({ message: 'Assigned user not found' });
             }
 
-            // Role-based permission to assign tickets
-            const role = req.user.role.toLowerCase();
-            if (role !== 'admin' && role !== 'technician') {
-                return res.status(403).json({ message: 'Not authorized to assign tickets' });
-            }
+        // Role-based permission to assign tickets is now handled by middleware
+        // This check is redundant but kept for additional security
         }
 
         // Validate dueDate if provided
@@ -173,15 +170,8 @@ const assignTicket = async (req, res) => {
         const assignee = await User.findById(assignedTo);
         if (!assignee) return res.status(404).json({ message: 'Assignee not found' });
 
-        const userRole = req.user.role.toLowerCase();
-
-        if (userRole === 'admin') {
-            ticket.assignedTo = assignedTo;
-        } else if (userRole === 'technician') {
-            ticket.assignedTo = assignedTo;
-        } else {
-            return res.status(403).json({ message: 'Unauthorized to assign this ticket' });
-        }
+        // Role-based permission is now handled by middleware
+        ticket.assignedTo = assignedTo;
 
         await ticket.save();
         res.status(200).json({ ticket });

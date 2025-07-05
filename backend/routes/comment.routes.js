@@ -6,8 +6,10 @@ const {
 } = require('../controllers/comment.controller');
 
 const auth = require('../middleware/auth.middleware');
+const { authorizeRoles } = require('../middleware/role.middleware');
 
 // Update and Delete a specific comment
+// Admin can manage all comments, others can only manage their own (handled in controller)
 router
     .route('/:commentId')
     .put(auth, updateComment)

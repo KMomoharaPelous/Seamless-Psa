@@ -16,6 +16,7 @@ if (process.env.NODE_ENV !== 'test') {
 // Routes
 const ticketRoutes = require('./routes/ticket.routes');
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const commentRoutes = require('./routes/comment.routes');
 const activityRoutes = require('./routes/activity.routes');
 
@@ -23,8 +24,9 @@ app.get('/', (req, res) => {
     res.send('✅ Seamless PSA API is running');
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
-app.use('/api/users', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/activity', activityRoutes);
 
