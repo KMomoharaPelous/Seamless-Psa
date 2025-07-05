@@ -23,7 +23,7 @@ afterAll(async () => {
 // Testing suites
 describe('Auth Routes', () => {
     // Test user registration
-    it('should register a new user', async () => {
+    test('should register a new user', async () => {
         const res = await request(app)
             .post('/api/users/register')
             .send({
@@ -39,7 +39,7 @@ describe('Auth Routes', () => {
     });
 
     // Test Duplicate Registration
-    it('should not allow duplicate email registration', async () => {
+    test('should not allow duplicate email registration', async () => {
         await request(app)
             .post('/api/users/register')
             .send({
@@ -63,7 +63,7 @@ describe('Auth Routes', () => {
     });
 
     // Tests User Login
-    it('it should login a registered user', async () => {
+    test('it should login a registered user', async () => {
         await request(app)
             .post('/api/users/register')
             .send({
@@ -86,7 +86,7 @@ describe('Auth Routes', () => {
     });
 
     // Tests invalid credentials
-    it('should reject login with invalid credentials', async () => {
+    test('should reject login with invalid credentials', async () => {
         const res = await request(app)
             .post('/api/users/login')
             .send({

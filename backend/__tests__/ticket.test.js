@@ -70,10 +70,10 @@ describe('Ticket API', () => {
     });
 
     // Verifies duplicate tickets cannot be made
-    it('should not create a ticket without a title', async () => {
+    test('should not create a ticket without a title', async () => {
         const res = await request(app)
             .post('/api/tickets')
-            .set('Authorization', `Bearer $[clientToken]`)
+            .set('Authorization', `Bearer ${clientToken}`)
             .send({
                 description: 'Missing title',
                 priority: 'Low',
@@ -85,7 +85,7 @@ describe('Ticket API', () => {
     });
 
     // Verifies that a user cannot create a ticket without a token
-    it('should return 401 if no token is provided', async () => {
+    test('should return 401 if no token is provided', async () => {
         const res = await request(app)
             .post('/api/tickets')
             .send({

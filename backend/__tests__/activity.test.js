@@ -21,7 +21,16 @@ beforeAll(async () => {
         password: 'techpass123',
         role: 'Technician'
     });
-    token = generateToken(user._id);
+    token = generateToken(user);
+
+    // Create a test ticket
+    ticket = await Ticket.create({
+        title: 'Test Ticket',
+        description: 'This is a test ticket',
+        status: 'Open',
+        priority: 'Low',
+        createdBy: user._id,
+    });
 
     // Create some log entries
     await ActivityLog.create([
@@ -53,7 +62,7 @@ afterAll(async () => {
 // Unit tests
 describe('Activity Log API', () => {
     // Retrieves Activity Logs
-    it('should fetch activity logs for a ticket', async () => {
+    test('should fetch activity logs for a ticket', async () => {
         const res = await request(app)
             .get(`/api/activity/ticket/${ticket._id}`)
             .set('Authorization', `Bearer ${token}`);

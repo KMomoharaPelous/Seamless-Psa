@@ -30,7 +30,7 @@ const createComment = async (req, res) => {
         const comment = await Comment.create({
             content: content.trim(),
             ticket: ticketId,
-            user: req.user.id
+            user: req.user._id
         });
 
         res.status(201).json(comment);
@@ -80,7 +80,7 @@ const updateComment = async (req, res) => {
         }
 
         // Check ownership or admin role
-        if (!comment.user.equals(req.user.id) && req.user.role !== 'admin') {
+        if (!comment.user.equals(req.user._id) && req.user.role !== 'Admin') {
             return res.status(403).json({ message: 'Not authorized to update this comment' });
         }
 
@@ -111,12 +111,11 @@ const deleteComment = async (req, res) => {
         }
         
         // Check ownership or admin role
-        if (!comment.user.equals(req.user.id) && req.user.role !== 
-    admin) {
+        if (!comment.user.equals(req.user._id) && req.user.role !== 'Admin') {
             return res.status(403).json({ message: 'Not authorized to delete this comment' });
         }
 
-        await comment.remove();
+        await comment.deleteOne();
         res.status(200).json({ message: 'Comment deleted successfully!' });
     } catch (error) {
         handleError(res, error, 'Failed to delete comment');

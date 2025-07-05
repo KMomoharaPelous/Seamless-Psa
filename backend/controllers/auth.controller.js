@@ -16,7 +16,7 @@ const registerUser = async (req, res) => {
 
         const user = await User.create({ name, email, password, role });
 
-        const token = generateToken(user._id);
+        const token = generateToken(user);
 
         res.status(201).json({
             message: 'User registered successfully',
@@ -52,7 +52,7 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = generateToken(user._id);
+        const token = generateToken(user);
 
         return res.status(200).json({
             message: 'Login successful',

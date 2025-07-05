@@ -178,9 +178,9 @@ const assignTicket = async (req, res) => {
         if (userRole === 'admin') {
             ticket.assignedTo = assignedTo;
         } else if (userRole === 'technician') {
-            if (assignee.role.toLowerCase() !== 'technician') {
-                return res.status(403).json({ message: 'Not authorized to assign tickets' });
-            }
+            ticket.assignedTo = assignedTo;
+        } else {
+            return res.status(403).json({ message: 'Unauthorized to assign this ticket' });
         }
 
         await ticket.save();
@@ -217,7 +217,7 @@ const reopenTicket = async (req, res) => {
             metadata: { status: 'ReOpened' }
         });
 
-        res.status(200).json({ message: 'Ticket Reopened', ticket});
+        res.status(200).json({ message: 'Ticket reopened successfully', ticket});
     } catch (error) {
         console.error('[Error] reopenTicket:', error.message);
         res.status(500).json({ message: 'Server error' });

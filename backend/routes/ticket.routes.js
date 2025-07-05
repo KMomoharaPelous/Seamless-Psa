@@ -9,6 +9,10 @@ const {
     deleteTicket,
     reopenTicket,
 } = require('../controllers/ticket.controller');
+const {
+    createComment,
+    getCommentsByTicket,
+} = require('../controllers/comment.controller');
 const auth = require('../middleware/auth.middleware');
 
 
@@ -27,8 +31,8 @@ router.get('/', auth, getTickets);
 router.get('/:id', auth, getTicketById);
 
 // UPDATE ticket fields (title, description, status, priority)
-// PUT /api/tickets/:id
-router.put('/:id', auth, updateTicket);
+// PATCH /api/tickets/:id
+router.patch('/:id', auth, updateTicket);
 
 // DELETE ticket
 // DELETE /api/tickets/:id
@@ -41,5 +45,12 @@ router.patch('/:id/assign', auth, assignTicket);
 // REOPEN ticket (any authenticated user)
 // PATCH /api/tickets/:id/reopen
 router.patch('/:id/reopen', auth, reopenTicket);
+
+// COMMENT routes for tickets
+// POST /api/tickets/:ticketId/comments
+router.post('/:ticketId/comments', auth, createComment);
+
+// GET /api/tickets/:ticketId/comments
+router.get('/:ticketId/comments', auth, getCommentsByTicket);
 
 module.exports = router;
