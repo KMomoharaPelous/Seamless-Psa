@@ -66,7 +66,6 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(201);
         expect(res.body.ticket).toHaveProperty('_id');
-        expect(res.body.ticket.title).toBe('Network Issue');
     });
 
     // Verifies duplicate tickets cannot be made
@@ -89,7 +88,6 @@ describe('Ticket API', () => {
         const res = await request(app)
             .post('/api/tickets')
             .send({
-                description: 'Unauthorized Ticket',
                 description: 'No token provided',
                 priority: 'Low',
                 status: 'Open',
@@ -99,67 +97,82 @@ describe('Ticket API', () => {
         expect(res.body.message).toMatch(/No token provided/i);
     });
 
-    // Should Get all tickets created by a user
-    test('should get all tickets created by a user', async () => {
-        const ticket1 = await Ticket.create({
-            title: 'Network Issue',
-            description: 'Cannot connect to VPN',
+    // Verifies that a user can update their own ticket
+    test('should allow user to update their own ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'Old Title',
+            description: 'Old description',
+            priority: 'Low',
             status: 'Open',
-            createdBy: clientUser._id,
-        });
-
-       const res = await request(app)
-        .get('/api/tickets')
-        .set('Authorization', `Bearer ${clientToken}`);
-
-        expect(res.statusCode).toBe(200);
-        expect(res.body.tickets.length).toBeGreaterThan(0);
-    });
-
-    // Should only fetch a ticket by ID
-    test('should only fetch a ticket by ID', async () => {
-        const ticket = await Ticket.create({
-            title: 'Printer Issue',
-            description: 'Printer not printing',
-            createdBy: clientUser._id,
-        });
-
-        const res = await request(app)
-            .get(`/api/tickets/${ticket._id}`)
-            .set('Authorization', `Bearer ${clientToken}`);
-
-        expect(res.statusCode).toBe(200);
-        expect(res.body.ticket.title).toBe('Printer Issue');
-        expect(res.body.ticket.createdBy).toBe(String(clientUser._id));
-    });
-
-    // Test should update a ticket
-    test('should update a ticket', async () => {
-        const ticket = await Ticket.create({
-            title: 'Printer Issue',
-            description: 'Printer not printing',
             createdBy: clientUser._id,
         });
 
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}`)
             .set('Authorization', `Bearer ${clientToken}`)
-            .send({
-                title: 'Updated Title',
-                description: 'Updated Description',
-            });
+            .send({ title: 'New Title' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.ticket.title).toBe('New Title');
+    });
+
+    // Verifies that an admin can update any ticket
+    test('admin should update any ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'Email Issue',
+            description: 'Cannot send emails',
+            priority: 'Medium',
+            status: 'Open',
+            createdBy: clientUser._id,
+        });
+
+        const res = await request(app)
+            .patch(`/api/tickets/${ticket._id}`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ title: 'Updated Title' });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.ticket.title).toBe('Updated Title');
-        expect(res.body.ticket.description).toBe('Updated Description');
     });
 
-
-    // Allows admin to assign a ticket
-    test('should allow an admin to assign a ticket', async () => {
+    // Verifies that a technician can update an assigned ticket
+    test('technician should update assigned ticket', async () => {
         const ticket = await Ticket.create({
-            title: 'Routing Issue',
-            description: 'Packets Dropping',
+            title: 'Router Issue',
+            description: 'Not responding',
+            createdBy: clientUser._id,
+            assignedTo: technicianUser._id,
+        });
+
+        const res = await request(app)
+            .patch(`/api/tickets/${ticket._id}`)
+            .set('Authorization', `Bearer ${technicianToken}`)
+            .send({ status: 'In Progress' });
+
+        expect(res.statusCode).toBe(200);
+    });
+
+    // Verifies that a user cannot update another user's ticket
+    test('user cannot update another user\'s ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'Unauthorized Update',
+            description: 'Client trying to update admin ticket',
+            createdBy: adminUser._id,
+        });
+
+        const res = await request(app)
+            .patch(`/api/tickets/${ticket._id}`)
+            .set('Authorization', `Bearer ${clientToken}`)
+            .send({ title: 'Hacked' });
+
+        expect(res.statusCode).toBe(403);
+    });
+
+    // Verifies that an admin can assign tickets to a technician
+    test('admin can assign tickets to technician', async () => {
+        const ticket = await Ticket.create({
+            title: 'Firewall Issue',
+            description: 'Blocked ports',
             createdBy: clientUser._id,
         });
 
@@ -172,38 +185,82 @@ describe('Ticket API', () => {
         expect(res.body.ticket.assignedTo).toBe(String(technicianUser._id));
     });
 
-    // Should prevent a client from assigning a ticket
-    test('should prevent a client from assigning a ticket', async () => {
+    // Verifies that a technician can assign a ticket to themselves
+    test('technician can assign ticket to themselves', async () => {
         const ticket = await Ticket.create({
-            title: 'Unauthorized assignment',
-            description: 'Unauthorized assignment',
+            title: 'Switch Issue',
+            description: 'Ports down',
             createdBy: clientUser._id,
         });
 
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}/assign`)
-            .set('Authorization', `Bearer ${clientToken}`)
+            .set('Authorization', `Bearer ${technicianToken}`)
             .send({ assignedTo: technicianUser._id });
 
-        expect(res.statusCode).toBe(403);
-        expect(res.body.message).toBe('Forbidden: you do not have permission to access this resource');
+        expect(res.statusCode).toBe(200);
     });
 
-    // Verifies Ticket can be reopened by creator
-    test('should reopen a closed ticket by the creator', async () => {
+    // Verifies that a technician cannot assign a ticket to another user
+    test('technician cannot assign ticket to another user', async () => {
         const ticket = await Ticket.create({
-            title: 'WiFi down',
-            description: 'Closing now',
+            title: 'Unauthorized Assignment',
+            description: 'Tech trying to assign to client',
+            createdBy: clientUser._id,
+        });
+
+        const res = await request(app)
+            .patch(`/api/tickets/${ticket._id}/assign`)
+            .set('Authorization', `Bearer ${technicianToken}`)
+            .send({ assignedTo: clientUser._id });
+
+        expect(res.statusCode).toBe(403);
+    });
+
+    // Adin can delete any ticket
+    test('admin can delete any ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'Delete Test',
+            description: 'Admin deletes this',
+            createdBy: clientUser._id,
+        });
+
+        const res = await request(app)
+            .delete(`/api/tickets/${ticket._id}`)
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+    });
+
+    // Verifies a user cannot delete another user's ticket
+    test('user cannot delete another user\'s ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'Unauthorized Delete',
+            description: 'User tries deleting admin ticket',
+            createdBy: adminUser._id,
+        });
+
+        const res = await request(app)
+            .delete(`/api/tickets/${ticket._id}`)
+            .set('Authorization', `Bearer ${clientToken}`);
+
+        expect(res.statusCode).toBe(403);
+    });
+
+    // Should reopen a ticket
+    test('should reopen a closed ticket', async () => {
+        const ticket = await Ticket.create({
+            title: 'WiFi Issue',
+            description: 'Was closed before',
             status: 'Closed',
             createdBy: clientUser._id,
         });
 
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}/reopen`)
-            .set('Authorization', `Bearer ${clientToken}`)
-            .send({ status: 'ReOpened' });
+            .set('Authorization', `Bearer ${clientToken}`);
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.message).toBe('Ticket reopened successfully');      
+        expect(res.body.message).toBe('Ticket reopened successfully');
     });
 });

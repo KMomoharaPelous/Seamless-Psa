@@ -82,11 +82,20 @@ const createTicket = async (req, res) => {
 // @access Private
 const getTickets = async (req, res) => {
     try {
-        const tickets = await Ticket.find({ createdBy: req.user._id })
+        const query = {}; // ✔️ Role-based ticket visibility
+        if (req.user.role === 'Admin') {
+            // Admin: see all tickets
+        } else if (req.user.role === 'Technician') {
+            query.$or = [{ createdBy: req.user._id }, { assignedTo: req.user._id }];
+        } else {
+            query.createdBy = req.user._id;
+        }
+
+        const tickets = await Ticket.find(query)
             .populate('assignedTo', 'name email role')
             .sort({ createdAt: -1 });
 
-        res.status(200).json({ message: 'Fetched user tickets', tickets });
+        res.status(200).json({ message: 'Fetched tickets', tickets });
     } catch (error) {
         console.error('[Error] getTickets:', error.message);
         res.status(500).json({ message: 'Server error' });
@@ -105,13 +114,17 @@ const getTicketById = async (req, res) => {
 
     try {
         const ticket = await Ticket.findById(id)
-            .populate('assignedTo', 'name email role')
+            .populate('assignedTo', 'name email role');
 
         if (!ticket) {
             return res.status(404).json({ message: 'Ticket not found' });
         }
 
-        if (ticket.createdBy.toString() !== req.user._id.toString()) {
+        const isAdmin = req.user.role === 'Admin'; // ✔️ Optional: Admins could view any ticket
+        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
+
+        if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
             return res.status(403).json({ message: 'Unauthorized to view this ticket' });
         }
 
@@ -123,63 +136,94 @@ const getTicketById = async (req, res) => {
 };
 
 // @desc Update ticket
-// @route PUT /api/tickets/:id
+// @route PATCH /api/tickets/:id
 // @access Private
 const updateTicket = async (req, res) => {
-    const { id } = req.params;
-    const { title, description, priority, status } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid ticket ID' });
-    }
-
     try {
-       const ticket = await Ticket.findById(id);
-       if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+        const { id } = req.params;
 
-       if (ticket.createdBy.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Not authorized to update this ticket '});
-       }
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid ticket ID' });
+        }
 
-       ticket.title = title || ticket.title;
-       ticket.description = description || ticket.description;
-       ticket.priority = priority || ticket.priority;
-       ticket.status = status || ticket.status;
+        const ticket = await Ticket.findById(id);
 
-       await ticket.save();
-       res.status(200).json({ ticket });
+        if (!ticket) {
+            return res.status(404).json({ message: 'Ticket not found' });
+        }
+
+        // Authorization: Check if the user is allowed to update
+        const isAdmin = req.user.role === 'Admin';
+        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
+
+        if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
+            return res.status(403).json({ message: 'Not authorized to update this ticket' });
+        }
+
+        // Update fields
+        const { title, description, status, priority } = req.body;
+
+        if (title) ticket.title = title;
+        if (description) ticket.description = description;
+        if (status) ticket.status = status;
+        if (priority) ticket.priority = priority;
+
+        const updatedTicket = await ticket.save();
+
+        res.status(200).json({
+            message: 'Ticket updated successfully',
+            ticket: updatedTicket,
+        });
     } catch (error) {
         console.error('[Error] updateTicket:', error.message);
         res.status(500).json({ message: 'Server error' });
     }
-}; 
+};
 
 // @desc Assign a ticket (Admin + Technicians Only)
 const assignTicket = async (req, res) => {
-    const { id } = req.params;
-    const { assignedTo } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(assignedTo)) {
-        return res.status(400).json({ message: 'Invalid ticket or user ID' });
-    }
-
     try {
+        const { id } = req.params;
+        const { assignedTo } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(assignedTo)) {
+            return res.status(400).json({ message: 'Invalid ticket ID or user ID' });
+        }
+
         const ticket = await Ticket.findById(id);
-        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+        if (!ticket) {
+            return res.status(404).json({ message: 'Ticket not found' });
+        }
 
-        const assignee = await User.findById(assignedTo);
-        if (!assignee) return res.status(404).json({ message: 'Assignee not found' });
+        const targetUser = await User.findById(assignedTo);
+        if (!targetUser) {
+            return res.status(404).json({ message: 'User to assign not found' });
+        }
 
-        // Role-based permission is now handled by middleware
+        // Authorization check
+        const isAdmin = req.user.role === 'Admin';
+        const isSelfAssign = assignedTo.toString() === req.user._id.toString();
+
+        if (!isAdmin && !isSelfAssign) {
+            return res.status(403).json({ message: 'Technicians can only assign tickets to themselves' });
+        }
+
+        // Perform the assignment
         ticket.assignedTo = assignedTo;
+        ticket.status = 'In Progress'; // Optional: auto-update status
+        const updatedTicket = await ticket.save();
 
-        await ticket.save();
-        res.status(200).json({ ticket });
+        res.status(200).json({
+            message: 'Ticket assigned successfully',
+            ticket: updatedTicket,
+        });
     } catch (error) {
-        console.error('[Error] assignedTicket:', error.message);
+        console.error('[Error] assignTicket:', error.message);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 // @desc Reopen ticket
 const reopenTicket = async (req, res) => {
@@ -219,30 +263,30 @@ const reopenTicket = async (req, res) => {
 // @route DELETE /api/tickets/:id
 // @access Private
 const deleteTicket = async (req, res) => {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid ticket ID' });
-    }
-
     try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid ticket ID' });
+        }
+
         const ticket = await Ticket.findById(id);
+
         if (!ticket) {
             return res.status(404).json({ message: 'Ticket not found' });
         }
 
-        if (ticket.createdBy.toString() !== req.user._id.toString()) {
+        // Authorization: Check if the user is allowed to delete
+        const isAdmin = req.user.role === 'Admin';
+        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
+
+        if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
             return res.status(403).json({ message: 'Not authorized to delete this ticket' });
         }
 
-        await ActivityLog.create({
-            ticket: ticket._id,
-            action: 'Deleted',
-            performedBy: req.user._id,
-            metadata: { title: ticket.title }
-        });
-
         await ticket.deleteOne();
+
         res.status(200).json({ message: 'Ticket deleted successfully' });
     } catch (error) {
         console.error('[Error] deleteTicket:', error.message);
