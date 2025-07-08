@@ -19,7 +19,7 @@ beforeAll(async () => {
         name: 'Test User',
         email: 'test@example.com',
         password: 'techpass123',
-        role: 'Technician'
+        role: 'technician'
     });
     token = generateToken(user);
 

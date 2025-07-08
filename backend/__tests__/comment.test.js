@@ -8,9 +8,9 @@ const generateToken = require('../utils/generateToken');
 
 describe('Comment API', () => {
     let server;
+    let ticket;
     let user;
     let token;
-    let ticket;
 
     beforeAll(async () => {
         server = app.listen();
@@ -22,7 +22,7 @@ describe('Comment API', () => {
             name: 'Test User',
             email: 'test@example.com',
             password: 'tecPass123',
-            role: 'Technician',
+            role: 'technician',
         });
 
         token = generateToken(user);
@@ -134,7 +134,7 @@ describe('Comment API', () => {
             name: 'Other User',
             email: 'other@example.com',
             password: 'pass456',
-            role: 'Technician',
+            role: 'technician',
         });
         const otherToken = generateToken(otherUser);
 

@@ -17,21 +17,21 @@ beforeAll(async () => {
         name: 'Client User',
         email: 'client@example.com',
         password: 'clientPass123',
-        role: 'Client',
+        role: 'client',
     });
 
     adminUser = await User.create({
         name: 'Admin User',
         email: 'admin@example.com',
         password: 'adminPass123',
-        role: 'Admin',
+        role: 'admin',
     });
 
     technicianUser = await User.create({
         name: 'Technician User',
         email: 'tech@example.com',
         password: 'techPass123',
-        role: 'Technician',
+        role: 'technician',
     });
 
     // Generate JWT token for test users

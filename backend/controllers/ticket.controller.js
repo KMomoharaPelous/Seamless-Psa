@@ -83,9 +83,9 @@ const createTicket = async (req, res) => {
 const getTickets = async (req, res) => {
     try {
         const query = {}; // ✔️ Role-based ticket visibility
-        if (req.user.role === 'Admin') {
+        if (req.user.role === 'admin') {
             // Admin: see all tickets
-        } else if (req.user.role === 'Technician') {
+        } else if (req.user.role === 'technician') {
             query.$or = [{ createdBy: req.user._id }, { assignedTo: req.user._id }];
         } else {
             query.createdBy = req.user._id;
@@ -120,8 +120,8 @@ const getTicketById = async (req, res) => {
             return res.status(404).json({ message: 'Ticket not found' });
         }
 
-        const isAdmin = req.user.role === 'Admin'; // ✔️ Optional: Admins could view any ticket
-        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin'; // ✔️ Optional: Admins could view any ticket
+        const isTechnicianAssigned = req.user.role === 'technician' && ticket.assignedTo?.toString() === req.user._id.toString();
         const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
 
         if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
@@ -153,8 +153,8 @@ const updateTicket = async (req, res) => {
         }
 
         // Authorization: Check if the user is allowed to update
-        const isAdmin = req.user.role === 'Admin';
-        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin';
+        const isTechnicianAssigned = req.user.role === 'technician' && ticket.assignedTo?.toString() === req.user._id.toString();
         const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
 
         if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
@@ -202,7 +202,7 @@ const assignTicket = async (req, res) => {
         }
 
         // Authorization check
-        const isAdmin = req.user.role === 'Admin';
+        const isAdmin = req.user.role === 'admin';
         const isSelfAssign = assignedTo.toString() === req.user._id.toString();
 
         if (!isAdmin && !isSelfAssign) {
@@ -277,8 +277,8 @@ const deleteTicket = async (req, res) => {
         }
 
         // Authorization: Check if the user is allowed to delete
-        const isAdmin = req.user.role === 'Admin';
-        const isTechnicianAssigned = req.user.role === 'Technician' && ticket.assignedTo?.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin';
+        const isTechnicianAssigned = req.user.role === 'technician' && ticket.assignedTo?.toString() === req.user._id.toString();
         const isTicketOwner = ticket.createdBy.toString() === req.user._id.toString();
 
         if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {

@@ -31,7 +31,7 @@ const auth = async (req, res, next) => {
         if (process.env.NODE_ENV !== 'test' || process.env.TRUST_TOKEN_ROLE === 'true') {
             req.user = {
                 _id: decoded._id,
-                role: decoded.role || 'Client',
+                role: decoded.role || 'client',
             };
         } else {
             const user = await User.findById(decoded._id).select('-password');

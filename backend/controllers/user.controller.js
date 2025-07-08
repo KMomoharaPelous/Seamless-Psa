@@ -56,8 +56,8 @@ const updateUserRole = async (req, res) => {
         return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    if (!role || !['Admin', 'Technician', 'Client'].includes(role)) {
-        return res.status(400).json({ message: 'Valid role is required (Admin, Technician, Client)' });
+            if (!role || !['admin', 'technician', 'client'].includes(role)) {
+        return res.status(400).json({ message: 'Valid role is required (admin, technician, client)' });
     }
 
     try {

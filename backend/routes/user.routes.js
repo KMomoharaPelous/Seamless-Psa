@@ -17,15 +17,15 @@ router.get('/profile', auth, getCurrentUser);
 
 // Admin-only routes
 // GET /api/users - Get all users
-router.get('/', auth, authorizeRoles('Admin'), getAllUsers);
+router.get('/', auth, authorizeRoles('admin'), getAllUsers);
 
 // GET /api/users/:id - Get user by ID
-router.get('/:id', auth, authorizeRoles('Admin'), getUserById);
+router.get('/:id', auth, authorizeRoles('admin'), getUserById);
 
 // PATCH /api/users/:id/role - Update user role
-router.patch('/:id/role', auth, authorizeRoles('Admin'), updateUserRole);
+router.patch('/:id/role', auth, authorizeRoles('admin'), updateUserRole);
 
 // DELETE /api/users/:id - Delete user
-router.delete('/:id', auth, authorizeRoles('Admin'), deleteUser);
+router.delete('/:id', auth, authorizeRoles('admin'), deleteUser);
 
 module.exports = router;

@@ -30,7 +30,7 @@ describe('Auth Routes', () => {
                 name: 'Test User',
                 email: 'test@example.com',
                 password: 'testpass123',
-                role: 'Client',
+                role: 'client',
             });
 
         expect(res.statusCode).toBe(201);
@@ -46,7 +46,7 @@ describe('Auth Routes', () => {
                 name: 'Admin User',
                 email: 'admin@example.com',
                 password: 'adminpass123',
-                role: 'Admin'
+                role: 'admin'
             });
 
         const res = await request(app)
@@ -55,7 +55,7 @@ describe('Auth Routes', () => {
                 name: 'Admin User 2',
                 email: 'admin@example.com',
                 password: 'adminpass123',
-                role: 'Admin'
+                role: 'admin'
             });
 
         expect(res.statusCode).toBe(400);
@@ -70,7 +70,7 @@ describe('Auth Routes', () => {
                 name: 'Login User',
                 email: 'login@example.com',
                 password: 'loginpass123',
-                role: 'Admin'
+                role: 'admin'
             });
 
         const res = await request(app)

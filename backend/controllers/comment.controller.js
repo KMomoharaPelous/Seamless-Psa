@@ -80,7 +80,7 @@ const updateComment = async (req, res) => {
         }
 
         // Check ownership or admin role
-        if (!comment.user.equals(req.user._id) && req.user.role !== 'Admin') {
+        if (!comment.user.equals(req.user._id) && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Not authorized to update this comment' });
         }
 
@@ -111,7 +111,7 @@ const deleteComment = async (req, res) => {
         }
         
         // Check ownership or admin role
-        if (!comment.user.equals(req.user._id) && req.user.role !== 'Admin') {
+        if (!comment.user.equals(req.user._id) && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Not authorized to delete this comment' });
         }
 

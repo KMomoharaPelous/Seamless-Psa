@@ -43,7 +43,7 @@ router.delete('/:id', auth, deleteTicket);
 
 // Assign ticket to Technician (Admin & Tech only)
 // PATCH /api/tickets/:id/assign
-router.patch('/:id/assign', auth, authorizeRoles('Admin', 'Technician'), assignTicket);
+router.patch('/:id/assign', auth, authorizeRoles('admin', 'technician'), assignTicket);
 
 // Reopen a ticket (Any authenticated user)
 // PATCH /api/tickets/:id/reopen
