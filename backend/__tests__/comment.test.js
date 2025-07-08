@@ -18,6 +18,7 @@ describe('Comment API', () => {
     });
 
     beforeEach(async () => {
+        // Create a default user (Technician)
         user = await User.create({
             name: 'Test User',
             email: 'test@example.com',
@@ -27,6 +28,7 @@ describe('Comment API', () => {
 
         token = generateToken(user);
 
+        // Create a ticket to attach comments to
         ticket = await Ticket.create({
             title: 'Test Ticket',
             description: 'This is a test ticket',
@@ -47,7 +49,7 @@ describe('Comment API', () => {
         server.close();
     });
 
-    // ✅ Create a Comment
+    // ✅ Create a comment
     test('should create a comment on a ticket', async () => {
         const res = await request(server)
             .post(`/api/tickets/${ticket._id}/comments`)
@@ -60,7 +62,7 @@ describe('Comment API', () => {
         expect(res.body).toHaveProperty('user', user._id.toString());
     });
 
-    // ✅ Get comments for a ticket
+    // ✅ Get all comments for a ticket
     test('should get all comments for a ticket', async () => {
         await Comment.create({
             content: 'Existing comment',
@@ -78,8 +80,8 @@ describe('Comment API', () => {
         expect(res.body[0]).toHaveProperty('content', 'Existing comment');
     });
 
-    // ✅ Update a comment
-    test('should update a comment', async () => {
+    // ✅ Update own comment
+    test('should update a comment owned by the user', async () => {
         const comment = await Comment.create({
             content: 'Old content',
             ticket: ticket._id,
@@ -95,8 +97,8 @@ describe('Comment API', () => {
         expect(res.body).toHaveProperty('content', 'Updated content');
     });
 
-    // ✅ Delete a comment
-    test('should delete a comment', async () => {
+    // ✅ Delete own comment
+    test('should delete a comment owned by the user', async () => {
         const comment = await Comment.create({
             content: 'Delete me',
             ticket: ticket._id,
@@ -111,8 +113,8 @@ describe('Comment API', () => {
         expect(res.body).toHaveProperty('message', 'Comment deleted successfully!');
     });
 
-    // 🚫 Unauthorized Access
-    test('should block unauthenticated users', async () => {
+    // 🚫 Unauthorized access (no token)
+    test('should block unauthenticated users from creating a comment', async () => {
         const res = await request(server)
             .post(`/api/tickets/${ticket._id}/comments`)
             .send({ content: 'Unauthorized comment' });
@@ -121,15 +123,14 @@ describe('Comment API', () => {
         expect(res.body).toHaveProperty('message');
     });
 
-    // 🚫 Invalid Comment Update by Wrong User
-    test('should not allow another user to update the comment', async () => {
+    // 🚫 Unauthorized update by another user
+    test('should not allow a different user to update the comment', async () => {
         const comment = await Comment.create({
             content: 'User1 comment',
             ticket: ticket._id,
             user: user._id,
         });
 
-        // Create a different user
         const otherUser = await User.create({
             name: 'Other User',
             email: 'other@example.com',
@@ -145,5 +146,48 @@ describe('Comment API', () => {
 
         expect(res.statusCode).toBe(403);
         expect(res.body).toHaveProperty('message', 'Not authorized to update this comment');
+    });
+
+    // 🚫 Unauthorized delete by another user
+    test('should not allow a different user to delete the comment', async () => {
+        const comment = await Comment.create({
+            content: 'User1 comment',
+            ticket: ticket._id,
+            user: user._id,
+        });
+
+        const otherUser = await User.create({
+            name: 'Other User',
+            email: 'other@example.com',
+            password: 'pass456',
+            role: 'technician',
+        });
+        const otherToken = generateToken(otherUser);
+
+        const res = await request(server)
+            .delete(`/api/comments/${comment._id}`)
+            .set('Authorization', `Bearer ${otherToken}`);
+
+        expect(res.statusCode).toBe(403);
+        expect(res.body).toHaveProperty('message', 'Not authorized to delete this comment');
+    });
+
+    // ❌ Invalid Comment ID on Update
+    test('should return 400 for invalid comment ID on update', async () => {
+        const res = await request(server)
+            .put(`/api/comments/invalid-id`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ content: 'Invalid update' });
+
+        expect(res.statusCode).toBe(400);
+    });
+
+    // ❌ Invalid Comment ID on Delete
+    test('should return 400 for invalid comment ID on delete', async () => {
+        const res = await request(server)
+            .delete(`/api/comments/invalid-id`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.statusCode).toBe(400);
     });
 });
