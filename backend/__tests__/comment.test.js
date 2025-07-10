@@ -34,8 +34,8 @@ describe('Comment API', () => {
         ticket = await Ticket.create({
             title: 'Test Ticket',
             description: 'This is a test ticket',
-            status: 'Open',
-            priority: 'Low',
+            status: 'open',
+            priority: 'low',
             createdBy: user._id,
         });
     });

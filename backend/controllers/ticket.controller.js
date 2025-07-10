@@ -11,8 +11,8 @@ const createTicket = async (req, res) => {
     const {
         title,
         description,
-        priority = 'Low',
-        status = 'Open',
+        priority = 'low',
+        status = 'open',
         assignedTo,
         dueDate,
     } = req.body;
@@ -62,7 +62,7 @@ const createTicket = async (req, res) => {
         // Create activity log
         await ActivityLog.create({
             ticket: ticket._id,
-            action: 'Created',
+            action: 'created ticket',
             performedBy: req.user._id,
             metadata: { priority, status },
         });
@@ -171,6 +171,17 @@ const updateTicket = async (req, res) => {
 
         const updatedTicket = await ticket.save();
 
+        // Activity Log
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'updated ticket',
+            performedBy: req.user._id,
+            metadata: {
+                updatedFields: Object.keys(req.body),
+                newValues: req.body
+            },
+        });
+
         res.status(200).json({
             message: 'Ticket updated successfully',
             ticket: updatedTicket,
@@ -211,8 +222,19 @@ const assignTicket = async (req, res) => {
 
         // Perform the assignment
         ticket.assignedTo = assignedTo;
-        ticket.status = 'In Progress'; // Optional: auto-update status
+        ticket.status = 'in progress'; // Optional: auto-update status
         const updatedTicket = await ticket.save();
+
+        // Activity Log
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'assigned ticket',
+            performedBy: req.user._id,
+            metadata: {
+                assignedTo: assignedTo,
+                assignedToName: targetUser.name
+            },
+        });
 
         res.status(200).json({
             message: 'Ticket assigned successfully',
@@ -237,18 +259,19 @@ const reopenTicket = async (req, res) => {
         const ticket = await Ticket.findById(id);
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
-        if (ticket.status === 'ReOpened') {
+        if (ticket.status === 'reopened') {
             return res.status(400).json({ message: 'Ticket is already reopened' });
         }
 
-        ticket.status = 'ReOpened';
+        ticket.status = 'reopened';
         await ticket.save();
 
+        // Activity Log
         await ActivityLog.create({
             ticket: ticket._id,
-            action: 'Reopened',
+            action: 'reopened ticket',
             performedBy: req.user._id,
-            metadata: { status: 'ReOpened' }
+            metadata: { status: 'reopened' }
         });
 
         res.status(200).json({ message: 'Ticket reopened successfully', ticket});
@@ -284,6 +307,14 @@ const deleteTicket = async (req, res) => {
         if (!isAdmin && !isTechnicianAssigned && !isTicketOwner) {
             return res.status(403).json({ message: 'Not authorized to delete this ticket' });
         }
+
+        // Activity Log
+        await ActivityLog.create({
+            ticket: ticket._id,
+            action: 'deleted ticket',
+            performedBy: req.user._id,
+            metadata: { title: ticket.title, status: ticket.status },
+        });
 
         await ticket.deleteOne();
 

@@ -60,8 +60,8 @@ describe('Ticket API', () => {
             .send({
                 title: 'Network Issue',
                 description: 'Cannot connect to VPN',
-                priority: 'High',
-                status: 'Open',
+                priority: 'high',
+                status: 'open',
             });
 
         expect(res.statusCode).toBe(201);
@@ -77,8 +77,8 @@ describe('Ticket API', () => {
             .set('Authorization', `Bearer ${clientToken}`)
             .send({
                 description: 'Missing title',
-                priority: 'Low',
-                status: 'Open',
+                priority: 'low',
+                status: 'open',
             });
 
         expect(res.statusCode).toBe(400);
@@ -92,8 +92,8 @@ describe('Ticket API', () => {
             .send({
                 title: 'No token provided',
                 description: 'No token provided',
-                priority: 'Low',
-                status: 'Open',
+                priority: 'low',
+                status: 'open',
             });
 
         expect(res.statusCode).toBe(401);
@@ -219,8 +219,8 @@ describe('Ticket API', () => {
         const ticket = await Ticket.create({
             title: 'Old Title',
             description: 'Old description',
-            priority: 'Low',
-            status: 'Open',
+            priority: 'low',
+            status: 'open',
             createdBy: clientUser._id,
         });
 
@@ -238,8 +238,8 @@ describe('Ticket API', () => {
         const ticket = await Ticket.create({
             title: 'Email Issue',
             description: 'Cannot send emails',
-            priority: 'Medium',
-            status: 'Open',
+            priority: 'medium',
+            status: 'open',
             createdBy: clientUser._id,
         });
 
@@ -264,10 +264,10 @@ describe('Ticket API', () => {
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}`)
             .set('Authorization', `Bearer ${technicianToken}`)
-            .send({ status: 'In Progress' });
+            .send({ status: 'in progress' });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.ticket.status).toBe('In Progress');
+        expect(res.body.ticket.status).toBe('in progress');
     });
 
     // Verifies that a user cannot update another user's ticket
@@ -302,7 +302,7 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.ticket.assignedTo).toBe(String(technicianUser._id));
-        expect(res.body.ticket.status).toBe('In Progress');
+        expect(res.body.ticket.status).toBe('in progress');
     });
 
     // Verifies that a technician can assign a ticket to themselves
@@ -394,7 +394,7 @@ describe('Ticket API', () => {
         const ticket = await Ticket.create({
             title: 'WiFi Issue',
             description: 'Was closed before',
-            status: 'Closed',
+            status: 'closed',
             createdBy: clientUser._id,
         });
 
@@ -404,7 +404,7 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.message).toBe('Ticket reopened successfully');
-        expect(res.body.ticket.status).toBe('ReOpened');
+        expect(res.body.ticket.status).toBe('reopened');
     });
 
     // Test reopening already reopened ticket
@@ -412,7 +412,7 @@ describe('Ticket API', () => {
         const ticket = await Ticket.create({
             title: 'Already Reopened',
             description: 'Already reopened ticket',
-            status: 'ReOpened',
+            status: 'reopened',
             createdBy: clientUser._id,
         });
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ACTIVITY_ACTION_VALUES } = require('../constants/enums');
 
 const activityLogSchema = new mongoose.Schema({
     ticket: {
@@ -9,20 +10,7 @@ const activityLogSchema = new mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: [
-            'created',
-            'updated',
-            'deleted',
-            'assigned',
-            'reopened',
-            'comment added',
-            'comment edited',
-            'comment deleted',
-            'role updated',
-            'user created',
-            'user deleted',
-        ],
-            
+        enum: ACTIVITY_ACTION_VALUES,
     },
     performedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -33,12 +21,8 @@ const activityLogSchema = new mongoose.Schema({
         type: Object,
         default: {},
     },
-    timestamp: {
-        createdAt: 'timestamp',
-        updatedAt: false
-    }
-});
+}, { timestamps: true });
 
-activityLogSchema.index({ ticket: 1, timestamp: -1 });
+activityLogSchema.index({ ticket: 1, createdAt: -1 });
 
 module.exports = mongoose.model('ActivityLog', activityLogSchema);

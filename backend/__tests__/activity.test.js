@@ -27,8 +27,8 @@ beforeAll(async () => {
     ticket = await Ticket.create({
         title: 'Test Ticket',
         description: 'This is a test ticket',
-        status: 'Open',
-        priority: 'Low',
+        status: 'open',
+        priority: 'low',
         createdBy: user._id,
     });
 
@@ -36,13 +36,13 @@ beforeAll(async () => {
     await ActivityLog.create([
         {
             ticket: ticket._id,
-            action: 'Created',
+            action: 'created ticket',
             performedBy: user._id,
             metadata: { note: 'Initial creation' }
         },
         {
             ticket: ticket._id,
-            action: 'Updated',
+            action: 'updated ticket',
             performedBy: user._id,
             metadata: { note: 'Changed title' }
         }

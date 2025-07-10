@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { TICKET_PRIORITY_VALUES, TICKET_STATUS_VALUES } = require('../constants/enums');
 
 const ticketSchema = new mongoose.Schema({
     title: {
@@ -12,13 +13,13 @@ const ticketSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ['Low', 'Medium', 'High'],
-        default: 'Medium',
+        enum: TICKET_PRIORITY_VALUES,
+        default: 'medium',
     },
     status: {
         type: String,
-        enum: ['Open', 'In Progress', 'Closed', 'ReOpened'],
-        default: 'Open',
+        enum: TICKET_STATUS_VALUES,
+        default: 'open',
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,

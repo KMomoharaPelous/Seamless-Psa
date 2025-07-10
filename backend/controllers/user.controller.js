@@ -1,16 +1,44 @@
 const User = require('../models/user.model');
 const mongoose = require('mongoose');
+const { USER_ROLE_VALUES } = require('../constants/enums');
+const ActivityLog = require('../models/activityLog.model');
+const { ACTIVITY_ACTIONS } = require('../constants/enums');
 
 // @desc Get all users (Admin only)
 // @route GET /api/users
 // @access Private - Admin only
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+        const { page = 1, limit = 10, role, search } = req.query;
+        const skip = (page - 1) * limit;
+
+        // Build query
+        let query = {};
+        if (role) query.role = role;
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const users = await User.find(query)
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await User.countDocuments(query);
+
         res.status(200).json({ 
             message: 'Users retrieved successfully', 
-            count: users.length,
-            users 
+            users,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / limit),
+                totalUsers: total,
+                usersPerPage: parseInt(limit)
+            }
         });
     } catch (error) {
         console.error('[Error] getAllUsers:', error.message);
@@ -56,7 +84,7 @@ const updateUserRole = async (req, res) => {
         return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-            if (!role || !['admin', 'technician', 'client'].includes(role)) {
+            if (!role || !USER_ROLE_VALUES.includes(role)) {
         return res.status(400).json({ message: 'Valid role is required (admin, technician, client)' });
     }
 
@@ -72,8 +100,21 @@ const updateUserRole = async (req, res) => {
             return res.status(400).json({ message: 'Cannot change your own role' });
         }
 
+        const oldRole = user.role;
         user.role = role;
         await user.save();
+
+        // Activity Log
+        await ActivityLog.create({
+            action: 'role updated',
+            performedBy: req.user._id,
+            metadata: {
+                userId: user._id,
+                userName: user.name,
+                oldRole,
+                newRole: role
+            }
+        });
 
         res.status(200).json({ 
             message: 'User role updated successfully', 
@@ -111,6 +152,18 @@ const deleteUser = async (req, res) => {
         if (user._id.toString() === req.user._id.toString()) {
             return res.status(400).json({ message: 'Cannot delete your own account' });
         }
+
+        // Activity Log
+        await ActivityLog.create({
+            action: 'user deleted',
+            performedBy: req.user._id,
+            metadata: {
+                userId: user._id,
+                userName: user.name,
+                userEmail: user.email,
+                userRole: user.role
+            }
+        });
 
         await user.deleteOne();
 

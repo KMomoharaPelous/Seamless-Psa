@@ -132,6 +132,14 @@ const deleteComment = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to delete this comment' });
         }
 
+        // Activity Log
+        await ActivityLog.create({
+            ticket: comment.ticket,
+            action: 'comment deleted',
+            performedBy: req.user._id,
+            metadata: { content: comment.content },
+        });
+
         await comment.deleteOne();
         res.status(200).json({ message: 'Comment deleted successfully!' });
     } catch (error) {
