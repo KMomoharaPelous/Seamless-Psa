@@ -1,7 +1,8 @@
+const mongoose = require('mongoose');
 const Comment = require('../models/comment.model');
 const Ticket = require('../models/ticket.model');
 const User = require('../models/user.model');
-const mongoose = require('mongoose');
+const ActivityLog = require('../models/activityLog.model');
 
 
 // @desc Create a new comment
@@ -31,6 +32,14 @@ const createComment = async (req, res) => {
             content: content.trim(),
             ticket: ticketId,
             user: req.user._id
+        });
+
+        // Activity Log
+        await ActivityLog.create({
+            ticket: ticketId,
+            action: 'comment added',
+            performedBy: req.user._id,
+            metadata: { content: comment.content },
         });
 
         res.status(201).json(comment);
@@ -86,6 +95,14 @@ const updateComment = async (req, res) => {
 
         comment.content = content?.trim() || comment.content;
         const updatedComment = await comment.save();
+
+        // Activity Log
+        await ActivityLog.create({
+            ticket: comment.ticket,
+            action: 'comment edited',
+            performedBy: req.user._id,
+            metadata: { content: updatedComment.content },
+        });
 
         res.status(200).json(updatedComment);
     } catch (error) {

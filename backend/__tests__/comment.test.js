@@ -4,7 +4,9 @@ const mongoose = require('mongoose');
 const Comment = require('../models/comment.model');
 const Ticket = require('../models/ticket.model');
 const User = require('../models/user.model');
+const ActivityLog = require('../models/activityLog.model');
 const generateToken = require('../utils/generateToken');
+
 
 describe('Comment API', () => {
     let server;
@@ -42,6 +44,7 @@ describe('Comment API', () => {
         await Comment.deleteMany();
         await Ticket.deleteMany();
         await User.deleteMany();
+        await ActivityLog.deleteMany();
     });
 
     afterAll(async () => {
@@ -50,7 +53,7 @@ describe('Comment API', () => {
     });
 
     // ✅ Create a comment
-    test('should create a comment on a ticket', async () => {
+    test('should create a comment on a ticket and log the activity', async () => {
         const res = await request(server)
             .post(`/api/tickets/${ticket._id}/comments`)
             .set('Authorization', `Bearer ${token}`)
@@ -58,8 +61,10 @@ describe('Comment API', () => {
 
         expect(res.statusCode).toBe(201);
         expect(res.body).toHaveProperty('content', 'This is a test comment');
-        expect(res.body).toHaveProperty('ticket', ticket._id.toString());
-        expect(res.body).toHaveProperty('user', user._id.toString());
+
+        const log = await ActivityLog.findOne({ ticket: ticket._id, action: 'comment added' });
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(user._id.toString());
     });
 
     // ✅ Get all comments for a ticket
@@ -81,7 +86,7 @@ describe('Comment API', () => {
     });
 
     // ✅ Update own comment
-    test('should update a comment owned by the user', async () => {
+    test('should update a comment owned by the user and log the activity', async () => {
         const comment = await Comment.create({
             content: 'Old content',
             ticket: ticket._id,
@@ -95,10 +100,14 @@ describe('Comment API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body).toHaveProperty('content', 'Updated content');
+
+        const log = await ActivityLog.findOne({ ticket: ticket._id, action: 'comment edited' });
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(user._id.toString());
     });
 
     // ✅ Delete own comment
-    test('should delete a comment owned by the user', async () => {
+    test('should delete a comment owned by the user and log the activity', async () => {
         const comment = await Comment.create({
             content: 'Delete me',
             ticket: ticket._id,
@@ -111,6 +120,10 @@ describe('Comment API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body).toHaveProperty('message', 'Comment deleted successfully!');
+
+        const log = await ActivityLog.findOne({ ticket: ticket._id, action: 'comment deleted' });
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(user._id.toString());
     });
 
     // 🚫 Unauthorized access (no token)

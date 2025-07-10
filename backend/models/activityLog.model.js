@@ -4,12 +4,25 @@ const activityLogSchema = new mongoose.Schema({
     ticket: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Ticket',
-        required: true,
+        required: false,
     },
     action: {
         type: String,
         required: true,
-        enum: ['Created', 'Updated', 'Deleted', 'Assigned', 'Reopened', 'Comment Added', 'Comment Edited', 'Comment Deleted'],
+        enum: [
+            'created',
+            'updated',
+            'deleted',
+            'assigned',
+            'reopened',
+            'comment added',
+            'comment edited',
+            'comment deleted',
+            'role updated',
+            'user created',
+            'user deleted',
+        ],
+            
     },
     performedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -18,10 +31,11 @@ const activityLogSchema = new mongoose.Schema({
     },
     metadata: {
         type: Object,
+        default: {},
     },
     timestamp: {
-        type: Date,
-        default: Date.now,
+        createdAt: 'timestamp',
+        updatedAt: false
     }
 });
 
