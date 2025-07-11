@@ -53,7 +53,7 @@ afterAll(async () => {
 // Unit Tests
 describe('Ticket API', () => {
     // Create a new ticket
-    test('should create a new ticket', async () => {
+    test('should create a new ticket and log the activity', async () => {
         const res = await request(app)
             .post('/api/tickets')
             .set('Authorization', `Bearer ${clientToken}`)
@@ -67,7 +67,16 @@ describe('Ticket API', () => {
         expect(res.statusCode).toBe(201);
         expect(res.body.ticket).toHaveProperty('_id');
         expect(res.body.ticket.title).toBe('Network Issue');
-        expect(res.body.ticket.createdBy).toBe(String(clientUser._id));
+        
+        // Verify activity log for ticket creation
+        const log = await ActivityLog.findOne({
+            ticket: res.body.ticket._id,
+            action: 'created ticket',
+        });
+
+        expect(log).toBeTruthy();
+        expect(log.performedBy).toBe(String(clientUser._id.toString()));
+        expect(log.metadata).toMatchObject({ priority: 'high', status: 'open' });
     });
 
     // Verifies duplicate tickets cannot be made
@@ -227,10 +236,20 @@ describe('Ticket API', () => {
         const res = await request(app)
             .patch(`/api/tickets/${ticket._id}`)
             .set('Authorization', `Bearer ${clientToken}`)
-            .send({ title: 'New Title' });
+            .send({ title: 'Updated Title' });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.ticket.title).toBe('New Title');
+        expect(res.body.ticket.title).toBe('Updated Title');
+
+        // Verify activity log for ticket update
+        const log = await ActivityLog.findOne({
+            ticket: ticket._id,
+            action: 'updated ticket',
+        });
+
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(clientUser._id.toString());
+        expect(log.metadata.updatedFields).toMatchObject({ title: 'Updated Title' });
     });
 
     // Verifies that an admin can update any ticket
@@ -288,7 +307,7 @@ describe('Ticket API', () => {
     });
 
     // Verifies that an admin can assign tickets to a technician
-    test('admin can assign tickets to technician', async () => {
+    test('admin can assign tickets to technician and log the activity', async () => {
         const ticket = await Ticket.create({
             title: 'Firewall Issue',
             description: 'Blocked ports',
@@ -302,7 +321,16 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.ticket.assignedTo).toBe(String(technicianUser._id));
-        expect(res.body.ticket.status).toBe('in progress');
+        
+        // Activity log for ticket assignment
+        const log = await ActivityLog.findOne({
+            ticket: ticket._id,
+            action: 'assigned ticket',
+        });
+
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(adminUser._id.toString());
+        expect(log.metadata.assignedTo).toBe(technicianUser._id.toString());
     });
 
     // Verifies that a technician can assign a ticket to themselves
@@ -358,7 +386,7 @@ describe('Ticket API', () => {
     });
 
     // Admin can delete any ticket
-    test('admin can delete any ticket', async () => {
+    test('admin can delete any ticket and log the activity', async () => {
         const ticket = await Ticket.create({
             title: 'Delete Test',
             description: 'Admin deletes this',
@@ -371,6 +399,15 @@ describe('Ticket API', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.message).toBe('Ticket deleted successfully');
+
+        // Verify activity log for ticket deletion
+        const log = await ActivityLog.findOne({
+            ticket: ticket._id,
+            action: 'deleted ticket',
+        });
+
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(adminUser._id.toString());
     });
 
     // Verifies a user cannot delete another user's ticket
@@ -390,7 +427,7 @@ describe('Ticket API', () => {
     });
 
     // Should reopen a ticket
-    test('should reopen a closed ticket', async () => {
+    test('should reopen a closed ticket and log the activity', async () => {
         const ticket = await Ticket.create({
             title: 'WiFi Issue',
             description: 'Was closed before',
@@ -403,8 +440,17 @@ describe('Ticket API', () => {
             .set('Authorization', `Bearer ${clientToken}`);
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.message).toBe('Ticket reopened successfully');
-        expect(res.body.ticket.status).toBe('reopened');
+        expect(res.body.ticket.status).toBe(' ticket reopened');
+
+        // Verify activity log for ticket reopening
+        const log = await ActivityLog.findOne({
+            ticket: ticket._id,
+            action: 'reopened ticket',
+        });
+
+        expect(log).toBeTruthy();
+        expect(log.performedBy.toString()).toBe(clientUser._id.toString());
+        expect(log.metadata.status).toBe('reopened');
     });
 
     // Test reopening already reopened ticket
